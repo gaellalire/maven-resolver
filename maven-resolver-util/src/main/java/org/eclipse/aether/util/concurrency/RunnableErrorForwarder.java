@@ -21,6 +21,8 @@ package org.eclipse.aether.util.concurrency;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
@@ -45,7 +47,11 @@ public final class RunnableErrorForwarder
 
     private final AtomicInteger counter = new AtomicInteger();
 
+    private List<Thread> runningThreads = new ArrayList<Thread>();
+
     private final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
+
+    private boolean interrupted = false;
 
     /**
      * Creates a new error forwarder for worker threads spawned by the current thread.
@@ -70,6 +76,15 @@ public final class RunnableErrorForwarder
         {
             public void run()
             {
+                Thread currentThread = Thread.currentThread();
+                synchronized ( runningThreads )
+                {
+                    if ( interrupted || currentThread.isInterrupted() )
+                    {
+                        return;
+                    }
+                    runningThreads.add( currentThread );
+                }
                 try
                 {
                     runnable.run();
@@ -86,6 +101,10 @@ public final class RunnableErrorForwarder
                 }
                 finally
                 {
+                    synchronized ( runningThreads )
+                    {
+                        runningThreads.remove( currentThread );
+                    }
                     counter.decrementAndGet();
                     LockSupport.unpark( thread );
                 }
@@ -130,22 +149,24 @@ public final class RunnableErrorForwarder
                 + Thread.currentThread() );
         }
 
-        boolean interrupted = false;
-
         while ( counter.get() > 0 )
         {
             LockSupport.park();
 
-            if ( Thread.interrupted() )
+            if ( thread.isInterrupted() )
             {
-                interrupted = true;
+                synchronized ( runningThreads )
+                {
+                    interrupted = true;
+                    for ( Thread thread : runningThreads )
+                    {
+                        thread.interrupt();
+                    }
+                }
+                return;
             }
         }
 
-        if ( interrupted )
-        {
-            Thread.currentThread().interrupt();
-        }
     }
 
 }

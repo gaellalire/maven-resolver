@@ -385,9 +385,14 @@ public class DefaultArtifactResolver
             }
         }
 
+        Thread currentThread = Thread.currentThread();
         for ( ResolutionGroup group : groups )
         {
             performDownloads( session, group );
+            if ( currentThread.isInterrupted() )
+            {
+                break;
+            }
         }
 
         for ( ArtifactResult result : results )

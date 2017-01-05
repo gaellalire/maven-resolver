@@ -54,7 +54,9 @@ import org.eclipse.aether.spi.connector.transport.PutTask;
 import org.eclipse.aether.spi.connector.transport.Transporter;
 import org.eclipse.aether.spi.connector.transport.TransporterProvider;
 import org.eclipse.aether.spi.io.FileProcessor;
+import org.eclipse.aether.transfer.ArtifactTransferException;
 import org.eclipse.aether.transfer.ChecksumFailureException;
+import org.eclipse.aether.transfer.MetadataTransferException;
 import org.eclipse.aether.transfer.NoRepositoryConnectorException;
 import org.eclipse.aether.transfer.NoRepositoryLayoutException;
 import org.eclipse.aether.transfer.NoTransporterException;
@@ -212,6 +214,8 @@ final class BasicRepositoryConnector
         Executor executor = getExecutor( artifactDownloads, metadataDownloads );
         RunnableErrorForwarder errorForwarder = new RunnableErrorForwarder();
 
+        Thread currentThread = Thread.currentThread();
+        InterruptedException interruptedException = null;
         for ( MetadataDownload transfer : safe( metadataDownloads ) )
         {
             URI location = layout.getLocation( transfer.getMetadata(), false );
@@ -228,37 +232,70 @@ final class BasicRepositoryConnector
             }
 
             Runnable task = new GetTaskRunner( location, transfer.getFile(), checksumPolicy, checksums, listener );
+            if ( currentThread.isInterrupted() )
+            {
+                interruptedException = new InterruptedException();
+                break;
+            }
             executor.execute( errorForwarder.wrap( task ) );
         }
 
-        for ( ArtifactDownload transfer : safe( artifactDownloads ) )
+        if ( interruptedException == null )
         {
-            URI location = layout.getLocation( transfer.getArtifact(), false );
-
-            TransferResource resource = newTransferResource( location, transfer.getFile(), transfer.getTrace() );
-            TransferEvent.Builder builder = newEventBuilder( resource, false, transfer.isExistenceCheck() );
-            ArtifactTransportListener listener = new ArtifactTransportListener( transfer, repository, builder );
-
-            Runnable task;
-            if ( transfer.isExistenceCheck() )
+            for ( ArtifactDownload transfer : safe( artifactDownloads ) )
             {
-                task = new PeekTaskRunner( location, listener );
-            }
-            else
-            {
-                ChecksumPolicy checksumPolicy = newChecksumPolicy( transfer.getChecksumPolicy(), resource );
-                List<RepositoryLayout.Checksum> checksums = null;
-                if ( checksumPolicy != null )
+                URI location = layout.getLocation( transfer.getArtifact(), false );
+
+                TransferResource resource = newTransferResource( location, transfer.getFile(), transfer.getTrace() );
+                TransferEvent.Builder builder = newEventBuilder( resource, false, transfer.isExistenceCheck() );
+                ArtifactTransportListener listener = new ArtifactTransportListener( transfer, repository, builder );
+
+                Runnable task;
+                if ( transfer.isExistenceCheck() )
                 {
-                    checksums = layout.getChecksums( transfer.getArtifact(), false, location );
+                    task = new PeekTaskRunner( location, listener );
                 }
+                else
+                {
+                    ChecksumPolicy checksumPolicy = newChecksumPolicy( transfer.getChecksumPolicy(), resource );
+                    List<RepositoryLayout.Checksum> checksums = null;
+                    if ( checksumPolicy != null )
+                    {
+                        checksums = layout.getChecksums( transfer.getArtifact(), false, location );
+                    }
 
-                task = new GetTaskRunner( location, transfer.getFile(), checksumPolicy, checksums, listener );
+                    task = new GetTaskRunner( location, transfer.getFile(), checksumPolicy, checksums, listener );
+                }
+                if ( currentThread.isInterrupted() )
+                {
+                    interruptedException = new InterruptedException();
+                    break;
+                }
+                executor.execute( errorForwarder.wrap( task ) );
             }
-            executor.execute( errorForwarder.wrap( task ) );
         }
-
+        if ( currentThread.isInterrupted() )
+        {
+            interruptedException = new InterruptedException();
+        }
         errorForwarder.await();
+        if ( currentThread.isInterrupted() )
+        {
+            interruptedException = new InterruptedException();
+        }
+        if ( interruptedException != null )
+        {
+            for ( MetadataDownload transfer : safe( metadataDownloads ) )
+            {
+                transfer.setException( new MetadataTransferException( transfer.getMetadata(), repository,
+                                                                      interruptedException ) );
+            }
+            for ( ArtifactDownload transfer : safe( artifactDownloads ) )
+            {
+                transfer.setException( new ArtifactTransferException( transfer.getArtifact(), repository,
+                                                                      interruptedException ) );
+            }
+        }
     }
 
     public void put( Collection<? extends ArtifactUpload> artifactUploads,
