@@ -53,6 +53,7 @@ import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.graph.Exclusion;
 import org.eclipse.aether.impl.ArtifactDescriptorReader;
 import org.eclipse.aether.impl.DependencyCollector;
+import org.eclipse.aether.impl.DependencyModifier;
 import org.eclipse.aether.impl.RemoteRepositoryManager;
 import org.eclipse.aether.impl.VersionRangeResolver;
 import org.eclipse.aether.repository.ArtifactRepository;
@@ -131,7 +132,23 @@ public class DefaultDependencyCollector
         return this;
     }
 
+    private static final DependencyModifier NOOP_DEPENDENCY_MODIFIER = new DependencyModifier()
+    {
+
+        public List<Dependency> modify( Dependency dependency, List<Dependency> children )
+        {
+            return children;
+        }
+    };
+
     public CollectResult collectDependencies( RepositorySystemSession session, CollectRequest request )
+        throws DependencyCollectionException
+    {
+        return collectDependencies( session, request, NOOP_DEPENDENCY_MODIFIER );
+    }
+
+    public CollectResult collectDependencies( RepositorySystemSession session, CollectRequest request,
+                                              DependencyModifier dependencyModifier )
         throws DependencyCollectionException
     {
         session = optimizeSession( session );
@@ -244,11 +261,14 @@ public class DefaultDependencyCollector
             Args args = new Args( session, trace, pool, nodes, context, versionContext, request );
             Results results = new Results( result, session );
 
-            process( args, results, dependencies, repositories,
+            List<Dependency> deps = new ArrayList<Dependency>( dependencies );
+            deps = dependencyModifier.modify( root, deps );
+
+            process( args, results, deps, repositories,
                      depSelector != null ? depSelector.deriveChildSelector( context ) : null,
                      depManager != null ? depManager.deriveChildManager( context ) : null,
                      depTraverser != null ? depTraverser.deriveChildTraverser( context ) : null,
-                     verFilter != null ? verFilter.deriveChildFilter( context ) : null );
+                     verFilter != null ? verFilter.deriveChildFilter( context ) : null, dependencyModifier );
 
             errorPath = results.errorPath;
         }
@@ -337,30 +357,33 @@ public class DefaultDependencyCollector
 
     private void process( final Args args, Results results, List<Dependency> dependencies,
                           List<RemoteRepository> repositories, DependencySelector depSelector,
-                          DependencyManager depManager, DependencyTraverser depTraverser, VersionFilter verFilter )
+                          DependencyManager depManager, DependencyTraverser depTraverser, VersionFilter verFilter,
+                          DependencyModifier dependencyModifier )
     {
         for ( Dependency dependency : dependencies )
         {
             processDependency( args, results, repositories, depSelector, depManager, depTraverser, verFilter,
-                               dependency );
+                               dependency, dependencyModifier );
         }
     }
 
     private void processDependency( Args args, Results results, List<RemoteRepository> repositories,
                                     DependencySelector depSelector, DependencyManager depManager,
-                                    DependencyTraverser depTraverser, VersionFilter verFilter, Dependency dependency )
+                                    DependencyTraverser depTraverser, VersionFilter verFilter, Dependency dependency,
+                                    DependencyModifier dependencyModifier )
     {
 
         List<Artifact> relocations = Collections.emptyList();
         boolean disableVersionManagement = false;
         processDependency( args, results, repositories, depSelector, depManager, depTraverser, verFilter, dependency,
-                           relocations, disableVersionManagement );
+                           relocations, disableVersionManagement, dependencyModifier );
     }
 
     private void processDependency( Args args, Results results, List<RemoteRepository> repositories,
                                     DependencySelector depSelector, DependencyManager depManager,
                                     DependencyTraverser depTraverser, VersionFilter verFilter, Dependency dependency,
-                                    List<Artifact> relocations, boolean disableVersionManagement )
+                                    List<Artifact> relocations, boolean disableVersionManagement,
+                                    DependencyModifier dependencyModifier )
     {
 
         if ( depSelector != null && !depSelector.selectDependency( dependency ) )
@@ -429,7 +452,8 @@ public class DefaultDependencyCollector
                             && originalArtifact.getArtifactId().equals( d.getArtifact().getArtifactId() );
 
                     processDependency( args, results, repositories, depSelector, depManager, depTraverser, verFilter, d,
-                                       descriptorResult.getRelocations(), disableVersionManagementSubsequently );
+                                       descriptorResult.getRelocations(), disableVersionManagementSubsequently,
+                                       dependencyModifier );
                     return;
                 }
                 else
@@ -449,7 +473,7 @@ public class DefaultDependencyCollector
                     if ( recurse )
                     {
                         doRecurse( args, results, repositories, depSelector, depManager, depTraverser, verFilter, d,
-                                   descriptorResult, child );
+                                   descriptorResult, child, dependencyModifier );
                     }
                 }
             }
@@ -469,7 +493,8 @@ public class DefaultDependencyCollector
     private void doRecurse( Args args, Results results, List<RemoteRepository> repositories,
                             DependencySelector depSelector, DependencyManager depManager,
                             DependencyTraverser depTraverser, VersionFilter verFilter, Dependency d,
-                            ArtifactDescriptorResult descriptorResult, DefaultDependencyNode child )
+                            ArtifactDescriptorResult descriptorResult, DefaultDependencyNode child,
+                            DependencyModifier dependencyModifier )
     {
         DefaultDependencyCollectionContext context = args.collectionContext;
         context.set( d, descriptorResult.getManagedDependencies() );
@@ -495,8 +520,12 @@ public class DefaultDependencyCollector
 
             args.nodes.push( child );
 
-            process( args, results, descriptorResult.getDependencies(), childRepos, childSelector, childManager,
-                     childTraverser, childFilter );
+            List<Dependency> deps = new ArrayList<Dependency>( descriptorResult.getDependencies() );
+
+            deps = dependencyModifier.modify( d, deps );
+
+            process( args, results, deps, childRepos, childSelector, childManager, childTraverser, childFilter,
+                     dependencyModifier );
 
             args.nodes.pop();
         }
@@ -769,7 +798,9 @@ public class DefaultDependencyCollector
 
     }
 
-    static class PremanagedDependency
+    /**
+     */
+    public static class PremanagedDependency
     {
 
         final String premanagedVersion;
@@ -816,7 +847,12 @@ public class DefaultDependencyCollector
             this.premanagedState = premanagedState;
         }
 
-        static PremanagedDependency create( DependencyManager depManager, Dependency dependency,
+        public Dependency getManagedDependency()
+        {
+            return managedDependency;
+        }
+
+        public static PremanagedDependency create( DependencyManager depManager, Dependency dependency,
                                             boolean disableVersionManagement, boolean premanagedState )
         {
             DependencyManagement depMngt = depManager != null ? depManager.manageDependency( dependency ) : null;
