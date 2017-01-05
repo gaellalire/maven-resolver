@@ -357,6 +357,7 @@ public class DefaultMetadataResolver
 
         if ( !tasks.isEmpty() )
         {
+            Thread currentThread = Thread.currentThread();
             int threads = ConfigUtils.getInteger( session, 4, CONFIG_PROP_THREADS );
             Executor executor = getExecutor( Math.min( tasks.size(), threads ) );
             try
@@ -368,11 +369,24 @@ public class DefaultMetadataResolver
                     executor.execute( errorForwarder.wrap( task ) );
                 }
 
-                errorForwarder.await();
-
-                for ( ResolveTask task : tasks )
+                if ( !currentThread.isInterrupted() )
                 {
-                    task.result.setException( task.exception );
+                    errorForwarder.await();
+                }
+                if ( currentThread.isInterrupted() )
+                {
+                    InterruptedException interruptedException = new InterruptedException();
+                    for ( ResolveTask task : tasks )
+                    {
+                        task.result.setException( interruptedException );
+                    }
+                }
+                else
+                {
+                    for ( ResolveTask task : tasks )
+                    {
+                        task.result.setException( task.exception );
+                    }
                 }
             }
             finally

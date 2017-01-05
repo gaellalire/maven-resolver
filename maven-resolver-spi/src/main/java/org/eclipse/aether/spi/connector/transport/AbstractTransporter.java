@@ -254,6 +254,10 @@ public abstract class AbstractTransporter
             buffer.rewind();
             buffer.limit( read );
             listener.transportProgressed( buffer );
+            if ( Thread.currentThread().isInterrupted() )
+            {
+                throw new TransferCancelledException( "Interrupted thread" );
+            }
         }
     }
 

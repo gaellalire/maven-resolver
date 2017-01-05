@@ -83,7 +83,7 @@ final class HttpTransporter
 {
 
     private static final Pattern CONTENT_RANGE_PATTERN =
-        Pattern.compile( "\\s*bytes\\s+([0-9]+)\\s*-\\s*([0-9]+)\\s*/.*" );
+        Pattern.compile( "\\s*(?:bytes\\s+)?([0-9]+)\\s*-\\s*([0-9]+)\\s*/.*" );
 
     private final Logger logger;
 
