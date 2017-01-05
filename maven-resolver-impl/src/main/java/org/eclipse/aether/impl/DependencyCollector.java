@@ -56,4 +56,26 @@ public interface DependencyCollector
     CollectResult collectDependencies( RepositorySystemSession session, CollectRequest request )
         throws DependencyCollectionException;
 
+    /**
+     * Collects the transitive dependencies of some artifacts and builds a dependency graph. Note that this operation is
+     * only concerned about determining the coordinates of the transitive dependencies and does not actually resolve the
+     * artifact files. The supplied session carries various hooks to customize the dependency graph that must be invoked
+     * throughout the operation.
+     * 
+     * @param session The repository session, must not be {@code null}.
+     * @param request The collection request, must not be {@code null}.
+     * @param dependencyModifier The dependency modifier, must not be {@code null}.
+     * @return The collection result, never {@code null}.
+     * @throws DependencyCollectionException If the dependency tree could not be built.
+     * @see RepositorySystemSession#getDependencyTraverser()
+     * @see RepositorySystemSession#getDependencyManager()
+     * @see RepositorySystemSession#getDependencySelector()
+     * @see RepositorySystemSession#getVersionFilter()
+     * @see RepositorySystemSession#getDependencyGraphTransformer()
+     * @see RepositorySystem#collectDependencies(RepositorySystemSession, CollectRequest)
+     */
+    CollectResult collectDependencies( RepositorySystemSession session, final CollectRequest request,
+                                              final DependencyModifier dependencyModifier )
+        throws DependencyCollectionException;
+
 }
