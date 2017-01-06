@@ -24,12 +24,12 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.eclipse.aether.StandardCharsets;
 import org.eclipse.aether.util.ChecksumUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;

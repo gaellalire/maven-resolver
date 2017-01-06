@@ -22,7 +22,7 @@ package org.eclipse.aether.connector.basic;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.repository.RemoteRepository;

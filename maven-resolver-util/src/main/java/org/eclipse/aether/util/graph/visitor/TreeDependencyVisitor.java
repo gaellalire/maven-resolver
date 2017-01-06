@@ -21,7 +21,7 @@ package org.eclipse.aether.util.graph.visitor;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.graph.DependencyVisitor;

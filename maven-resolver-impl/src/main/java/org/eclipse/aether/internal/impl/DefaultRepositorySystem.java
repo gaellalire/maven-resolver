@@ -22,7 +22,7 @@ package org.eclipse.aether.internal.impl;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import javax.inject.Inject;
 import javax.inject.Named;

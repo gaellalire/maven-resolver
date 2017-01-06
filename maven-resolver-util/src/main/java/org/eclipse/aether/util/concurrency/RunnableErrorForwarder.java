@@ -19,7 +19,7 @@ package org.eclipse.aether.util.concurrency;
  * under the License.
  */
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;

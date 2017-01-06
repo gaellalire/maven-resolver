@@ -22,7 +22,7 @@ package org.eclipse.aether.internal.impl;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
+import org.eclipse.aether.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

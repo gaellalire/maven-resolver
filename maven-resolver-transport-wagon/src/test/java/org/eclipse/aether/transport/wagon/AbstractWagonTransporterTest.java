@@ -25,7 +25,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import org.eclipse.aether.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 

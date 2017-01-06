@@ -23,7 +23,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;

@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import static java.util.Objects.requireNonNull;
 import java.util.StringTokenizer;
+import static org.eclipse.aether.Objects.requireNonNull;
 import java.util.regex.Pattern;
 
 import org.eclipse.aether.repository.Proxy;

@@ -20,7 +20,7 @@ package org.eclipse.aether.transfer;
  */
 
 import java.nio.ByteBuffer;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.RepositorySystemSession;
 

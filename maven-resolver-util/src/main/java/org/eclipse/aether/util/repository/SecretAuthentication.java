@@ -21,7 +21,7 @@ package org.eclipse.aether.util.repository;
 
 import java.util.Arrays;
 import java.util.Map;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.repository.Authentication;
 import org.eclipse.aether.repository.AuthenticationContext;

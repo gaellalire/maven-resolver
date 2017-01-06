@@ -19,7 +19,7 @@ package org.eclipse.aether.resolution;
  * under the License.
  */
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;

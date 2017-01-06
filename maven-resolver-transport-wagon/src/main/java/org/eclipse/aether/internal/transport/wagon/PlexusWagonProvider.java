@@ -19,7 +19,7 @@ package org.eclipse.aether.internal.transport.wagon;
  * under the License.
  */
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.apache.maven.wagon.Wagon;
 import org.codehaus.plexus.PlexusContainer;

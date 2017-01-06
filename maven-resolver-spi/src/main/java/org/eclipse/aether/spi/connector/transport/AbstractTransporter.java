@@ -162,7 +162,7 @@ public abstract class AbstractTransporter
      * boilerplate I/O code.
      * 
      * @param task The upload to perform, must not be {@code null}.
-     * @param os The output stream to upload the data to, must not be {@code null}.
+     * @param out The output stream to upload the data to, must not be {@code null}.
      * @param close {@code true} if the supplied output stream should be automatically closed, {@code false} to leave
      *            the stream open.
      * @throws IOException If the transfer encountered an I/O error.

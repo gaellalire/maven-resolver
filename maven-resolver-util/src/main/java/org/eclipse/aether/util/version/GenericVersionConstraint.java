@@ -19,7 +19,7 @@ package org.eclipse.aether.util.version;
  * under the License.
  */
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.version.Version;
 import org.eclipse.aether.version.VersionConstraint;

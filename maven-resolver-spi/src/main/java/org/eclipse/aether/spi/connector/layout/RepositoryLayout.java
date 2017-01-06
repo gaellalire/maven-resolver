@@ -22,7 +22,7 @@ package org.eclipse.aether.spi.connector.layout;
 import java.net.URI;
 import java.util.List;
 import java.util.Locale;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.metadata.Metadata;

@@ -19,7 +19,7 @@ package org.eclipse.aether.util.repository;
  * under the License.
  */
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.repository.Proxy;
 import org.eclipse.aether.repository.ProxySelector;

@@ -21,7 +21,7 @@ package org.eclipse.aether.internal.test.util;
 
 import java.util.HashMap;
 import java.util.Map;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.collection.DependencyGraphTransformationContext;

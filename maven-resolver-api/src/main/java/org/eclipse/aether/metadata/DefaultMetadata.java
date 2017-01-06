@@ -21,7 +21,7 @@ package org.eclipse.aether.metadata;
 
 import java.io.File;
 import java.util.Map;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 /**
  * A basic metadata instance. <em>Note:</em> Instances of this class are immutable and the exposed mutators return new

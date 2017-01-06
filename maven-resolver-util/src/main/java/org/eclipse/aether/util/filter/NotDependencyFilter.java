@@ -20,7 +20,7 @@ package org.eclipse.aether.util.filter;
  */
 
 import java.util.List;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.graph.DependencyNode;

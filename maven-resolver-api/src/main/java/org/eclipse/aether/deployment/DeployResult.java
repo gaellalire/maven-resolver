@@ -22,7 +22,7 @@ package org.eclipse.aether.deployment;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;

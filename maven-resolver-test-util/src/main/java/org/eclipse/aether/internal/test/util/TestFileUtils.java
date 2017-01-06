@@ -26,7 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.nio.charset.StandardCharsets;
+import org.eclipse.aether.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;

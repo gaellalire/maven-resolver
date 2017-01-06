@@ -22,7 +22,7 @@ package org.eclipse.aether;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.metadata.Metadata;

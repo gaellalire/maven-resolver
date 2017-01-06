@@ -30,7 +30,7 @@
 
   <groupId>org.apache.maven.resolver</groupId>
   <artifactId>maven-resolver</artifactId>
-  <version>1.1.1-SNAPSHOT</version>
+  <version>java6-1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Maven Artifact Resolver</name>
@@ -40,12 +40,6 @@
   <url>https://maven.apache.org/resolver/</url>
   <inceptionYear>2010</inceptionYear>
 
-  <scm>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/maven-resolver.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/maven-resolver.git</developerConnection>
-    <url>https://github.com/apache/maven-resolver/tree/${project.scm.tag}</url>
-    <tag>master</tag>
-  </scm>
   <issueManagement>
     <system>jira</system>
     <url>https://issues.apache.org/jira/browse/MRESOLVER</url>
@@ -54,15 +48,27 @@
     <system>Jenkins</system>
     <url>https://builds.apache.org/job/maven-resolver/</url>
   </ciManagement>
+  
   <distributionManagement>
-    <site>
-      <id>apache.website</id>
-      <url>scm:svn:https://svn.apache.org/repos/infra/websites/production/maven/components/${maven.site.path}</url>
-    </site>
+    <repository>
+      <id>gaellalire_nexus</id>
+      <url>http://gaellalire.fr/nexus/content/repositories/releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>gaellalire_nexus</id>
+      <url>http://gaellalire.fr/nexus/content/repositories/snapshots/</url>
+    </snapshotRepository>
+    <site />
   </distributionManagement>
-
+  <scm>
+    <connection>scm:git:git@github.com:gaellalire/maven-resolver.git</connection>
+    <developerConnection>scm:git:git@github.com:gaellalire/maven-resolver.git</developerConnection>
+    <url>https://github.com/gaellalire/maven-resolver/tree/java6</url>
+  </scm>
+  
+ 
   <properties>
-    <javaVersion>7</javaVersion>
+    <javaVersion>6</javaVersion>
     <surefire.redirectTestOutputToFile>true</surefire.redirectTestOutputToFile>
     <maven.site.path>resolver-archives/resolver-LATEST</maven.site.path>
     <checkstyle.violation.ignore>UnusedImports,LineLength,InnerAssignment,MagicNumber,AvoidNestedBlocks,ParameterNumber,MethodLength,MemberName</checkstyle.violation.ignore>
@@ -186,6 +192,41 @@
   </dependencyManagement>
 
   <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>rat-check</id>
+            <phase />
+          </execution>
+        </executions>
+        </plugin>
+      <plugin>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>checkstyle-check</id>
+            <phase />
+          </execution>
+        </executions>
+        </plugin>
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-bytecode-version</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>
+            </phase>
+            </execution>
+            </executions>
+            </plugin>
+    </plugins>
     <pluginManagement>
       <plugins>
         <plugin>
@@ -306,7 +347,7 @@
             </execution>
           </executions>
         </plugin>
-        <plugin>
+        <!-- <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
@@ -316,7 +357,7 @@
               <exclude>src/test/resources/ssl/*-store</exclude>
             </excludes>
           </configuration>
-        </plugin>
+        </plugin> -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
@@ -330,19 +371,6 @@
         </plugin>
       </plugins>
     </pluginManagement>
-    <plugins>
-      <plugin><!-- TODO remove when upgrading to parent pom 31 -->
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <dependencies>
-          <dependency>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>extra-enforcer-rules</artifactId>
-            <version>1.0-beta-6</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-    </plugins>
   </build>
 
   <profiles>

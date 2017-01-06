@@ -22,7 +22,7 @@ package org.eclipse.aether;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 import org.eclipse.aether.artifact.ArtifactType;
 import org.eclipse.aether.artifact.ArtifactTypeRegistry;

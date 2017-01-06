@@ -20,7 +20,7 @@ package org.eclipse.aether.internal.impl;
  */
 
 import java.io.File;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 import java.util.SortedSet;
 import java.util.TreeSet;
 

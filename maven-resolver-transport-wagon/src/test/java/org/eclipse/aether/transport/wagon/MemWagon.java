@@ -25,7 +25,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import org.eclipse.aether.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
 

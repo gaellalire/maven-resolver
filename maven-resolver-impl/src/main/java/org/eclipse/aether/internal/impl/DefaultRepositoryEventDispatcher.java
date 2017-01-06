@@ -21,7 +21,7 @@ package org.eclipse.aether.internal.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 import java.util.Set;
 
 import javax.inject.Inject;

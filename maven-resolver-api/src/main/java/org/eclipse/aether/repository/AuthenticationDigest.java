@@ -19,7 +19,7 @@ package org.eclipse.aether.repository;
  * under the License.
  */
 
-import java.nio.charset.StandardCharsets;
+import org.eclipse.aether.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 

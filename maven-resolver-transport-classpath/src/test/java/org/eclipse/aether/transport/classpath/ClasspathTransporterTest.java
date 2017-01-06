@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import org.eclipse.aether.StandardCharsets;
 
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.internal.test.util.TestFileUtils;

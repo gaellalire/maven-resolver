@@ -20,7 +20,7 @@ package org.eclipse.aether.spi.connector.transport;
  */
 
 import java.net.URI;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.aether.Objects.requireNonNull;
 
 /**
  * A transport task.

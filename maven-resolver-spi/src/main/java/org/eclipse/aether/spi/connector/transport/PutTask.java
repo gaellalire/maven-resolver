@@ -25,7 +25,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import org.eclipse.aether.StandardCharsets;
 
 /**
  * A task to upload a resource to the remote repository.
