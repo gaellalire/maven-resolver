@@ -1,5 +1,7 @@
 package org.eclipse.aether.transport.http;
 
+
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,6 +24,8 @@ package org.eclipse.aether.transport.http;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.spi.connector.transport.Transporter;
@@ -45,6 +49,10 @@ public final class HttpTransporterFactory
     private Logger logger = NullLoggerFactory.LOGGER;
 
     private float priority = 5.0f;
+    
+    private CredentialsProvider defaultCredentialsProvider;
+    
+    private HttpRoutePlanner defaultHttpRoutePlanner;
 
     /**
      * Creates an (uninitialized) instance of this transporter factory. <em>Note:</em> In case of manual instantiation
@@ -95,11 +103,26 @@ public final class HttpTransporterFactory
         this.priority = priority;
         return this;
     }
+    
+    public CredentialsProvider getDefaultCredentialsProvider()
+    {
+        return defaultCredentialsProvider;
+    }
+    
+    public void setDefaultCredentialsProvider( CredentialsProvider defaultCredentialsProvider )
+    {
+        this.defaultCredentialsProvider = defaultCredentialsProvider;
+    }
+
+    public void setDefaultRoutePlanner( HttpRoutePlanner defaultHttpRoutePlanner )
+    {
+        this.defaultHttpRoutePlanner = defaultHttpRoutePlanner;
+    }
 
     public Transporter newInstance( RepositorySystemSession session, RemoteRepository repository )
         throws NoTransporterException
     {
-        return new HttpTransporter( repository, session, logger );
+        return new HttpTransporter( repository, session, logger, defaultHttpRoutePlanner, defaultCredentialsProvider );
     }
 
 }

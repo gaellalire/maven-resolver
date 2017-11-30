@@ -26,12 +26,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.net.ssl.SSLSocketFactory;
+
 import org.apache.http.HttpHost;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.PlainSocketFactory;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.eclipse.aether.RepositoryCache;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.util.ConfigUtils;
@@ -88,7 +92,7 @@ final class GlobalState
 
     private static final String CONFIG_PROP_CACHE_STATE = "aether.connector.http.cacheState";
 
-    private final ConcurrentMap<SslConfig, ClientConnectionManager> connectionManagers;
+    private final ConcurrentMap<SslConfig, HttpClientConnectionManager> connectionManagers;
 
     private final ConcurrentMap<CompoundKey, Object> userTokens;
 
@@ -133,7 +137,7 @@ final class GlobalState
 
     private GlobalState()
     {
-        connectionManagers = new ConcurrentHashMap<SslConfig, ClientConnectionManager>();
+        connectionManagers = new ConcurrentHashMap<SslConfig, HttpClientConnectionManager>();
         userTokens = new ConcurrentHashMap<CompoundKey, Object>();
         authSchemePools = new ConcurrentHashMap<HttpHost, AuthSchemePool>();
         expectContinues = new ConcurrentHashMap<CompoundKey, Boolean>();
@@ -141,20 +145,20 @@ final class GlobalState
 
     public void close()
     {
-        for ( Iterator<Map.Entry<SslConfig, ClientConnectionManager>> it = connectionManagers.entrySet().iterator(); it.hasNext(); )
+        for ( Iterator<Map.Entry<SslConfig, HttpClientConnectionManager>> it = connectionManagers.entrySet().iterator(); it.hasNext(); )
         {
-            ClientConnectionManager connMgr = it.next().getValue();
+            HttpClientConnectionManager connMgr = it.next().getValue();
             it.remove();
             connMgr.shutdown();
         }
     }
 
-    public ClientConnectionManager getConnectionManager( SslConfig config )
+    public HttpClientConnectionManager getConnectionManager( SslConfig config )
     {
-        ClientConnectionManager manager = connectionManagers.get( config );
+        HttpClientConnectionManager manager = connectionManagers.get( config );
         if ( manager == null )
         {
-            ClientConnectionManager connMgr = newConnectionManager( config );
+            HttpClientConnectionManager connMgr = newConnectionManager( config );
             manager = connectionManagers.putIfAbsent( config, connMgr );
             if ( manager != null )
             {
@@ -168,13 +172,22 @@ final class GlobalState
         return manager;
     }
 
-    public static ClientConnectionManager newConnectionManager( SslConfig sslConfig )
+    public static HttpClientConnectionManager newConnectionManager( SslConfig sslConfig )
     {
-        SchemeRegistry schemeReg = new SchemeRegistry();
-        schemeReg.register( new Scheme( "http", 80, new PlainSocketFactory() ) );
-        schemeReg.register( new Scheme( "https", 443, new SslSocketFactory( sslConfig ) ) );
+        SSLSocketFactory socketfactory = ( sslConfig.context != null ) ? sslConfig.context.getSocketFactory()
+                        : (SSLSocketFactory) SSLSocketFactory.getDefault();
+        X509HostnameVerifier hostnameVerifier =
+            ( sslConfig.verifier != null ) ? X509HostnameVerifierAdapter.adapt( sslConfig.verifier )
+                            : org.apache.http.conn.ssl.SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER;
+        SSLConnectionSocketFactory sslConnectionSocketFactory =
+            new SSLConnectionSocketFactory( socketfactory, sslConfig.protocols, sslConfig.cipherSuites,
+                                            hostnameVerifier );
+        Registry<ConnectionSocketFactory> build =
+            RegistryBuilder.<ConnectionSocketFactory>create().register( "http",
+                                                                        InterruptiblePlainConnectionSocketFactory.getSocketFactory() ).register( "https",
+                                                                                                                                    sslConnectionSocketFactory ).build();
 
-        PoolingClientConnectionManager connMgr = new PoolingClientConnectionManager( schemeReg );
+        PoolingHttpClientConnectionManager connMgr = new PoolingHttpClientConnectionManager( build );
         connMgr.setMaxTotal( 100 );
         connMgr.setDefaultMaxPerRoute( 50 );
         return connMgr;

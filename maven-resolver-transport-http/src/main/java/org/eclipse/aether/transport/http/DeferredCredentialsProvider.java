@@ -44,9 +44,16 @@ final class DeferredCredentialsProvider
 
     private final Map<AuthScope, Factory> factories;
 
-    public DeferredCredentialsProvider()
+    public DeferredCredentialsProvider(CredentialsProvider defaultCredentialsProvider)
     {
-        delegate = new BasicCredentialsProvider();
+        if ( defaultCredentialsProvider == null )
+        {
+            delegate = new BasicCredentialsProvider();
+        }
+        else
+        {
+            delegate = defaultCredentialsProvider;
+        }
         factories = new HashMap<AuthScope, Factory>();
     }
 

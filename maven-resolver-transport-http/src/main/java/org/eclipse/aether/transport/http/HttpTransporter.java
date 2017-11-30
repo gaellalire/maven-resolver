@@ -40,10 +40,10 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.params.AuthParams;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpOptions;
@@ -51,14 +51,11 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.DateUtils;
 import org.apache.http.client.utils.URIUtils;
-import org.apache.http.conn.params.ConnRouteParams;
+import org.apache.http.config.SocketConfig;
+import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.impl.client.DecompressingHttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.eclipse.aether.ConfigurationProperties;
 import org.eclipse.aether.RepositorySystemSession;
@@ -106,6 +103,13 @@ final class HttpTransporter
     public HttpTransporter( RemoteRepository repository, RepositorySystemSession session, Logger logger )
         throws NoTransporterException
     {
+        this( repository, session, logger, null, null );
+    }
+
+    public HttpTransporter( RemoteRepository repository, RepositorySystemSession session, Logger logger,
+                            HttpRoutePlanner defaultHttpRoutePlanner, CredentialsProvider defaultCredentialsProvider )
+        throws NoTransporterException
+    {
         if ( !"http".equalsIgnoreCase( repository.getProtocol() )
             && !"https".equalsIgnoreCase( repository.getProtocol() ) )
         {
@@ -136,17 +140,24 @@ final class HttpTransporter
 
         state = new LocalState( session, repository, new SslConfig( session, repoAuthContext ) );
 
-        headers =
-            ConfigUtils.getMap( session, Collections.emptyMap(), ConfigurationProperties.HTTP_HEADERS + "."
-                + repository.getId(), ConfigurationProperties.HTTP_HEADERS );
+        headers = ConfigUtils.getMap( session, Collections.emptyMap(),
+                                      ConfigurationProperties.HTTP_HEADERS + "." + repository.getId(),
+                                      ConfigurationProperties.HTTP_HEADERS );
 
-        DefaultHttpClient client = new DefaultHttpClient( state.getConnectionManager() );
+        HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+        httpClientBuilder.setConnectionManager( state.getConnectionManager() );
 
-        configureClient( client.getParams(), session, repository, proxy );
+        configureClient( httpClientBuilder, session, repository, proxy );
 
-        client.setCredentialsProvider( toCredentialsProvider( server, repoAuthContext, proxy, proxyAuthContext ) );
+        if ( proxy == null && defaultHttpRoutePlanner != null )
+        {
+            httpClientBuilder.setRoutePlanner( defaultHttpRoutePlanner );
+        }
+        httpClientBuilder.setDefaultCredentialsProvider( toCredentialsProvider( server, repoAuthContext, proxy,
+                                                                                proxyAuthContext,
+                                                                                defaultCredentialsProvider ) );
 
-        this.client = new DecompressingHttpClient( client );
+        this.client = httpClientBuilder.build();
     }
 
     private static HttpHost toHost( Proxy proxy )
@@ -159,48 +170,59 @@ final class HttpTransporter
         return host;
     }
 
-    private static void configureClient( HttpParams params, RepositorySystemSession session,
+    private static void configureClient( HttpClientBuilder httpClientBuilder, RepositorySystemSession session,
                                          RemoteRepository repository, HttpHost proxy )
     {
-        AuthParams.setCredentialCharset( params,
-                                         ConfigUtils.getString( session,
-                                                                ConfigurationProperties.DEFAULT_HTTP_CREDENTIAL_ENCODING,
-                                                                ConfigurationProperties.HTTP_CREDENTIAL_ENCODING + "."
-                                                                    + repository.getId(),
-                                                                ConfigurationProperties.HTTP_CREDENTIAL_ENCODING ) );
-        ConnRouteParams.setDefaultProxy( params, proxy );
-        HttpConnectionParams.setConnectionTimeout( params,
-                                                   ConfigUtils.getInteger( session,
-                                                                           ConfigurationProperties.DEFAULT_CONNECT_TIMEOUT,
-                                                                           ConfigurationProperties.CONNECT_TIMEOUT
-                                                                               + "." + repository.getId(),
-                                                                           ConfigurationProperties.CONNECT_TIMEOUT ) );
-        HttpConnectionParams.setSoTimeout( params,
-                                           ConfigUtils.getInteger( session,
-                                                                   ConfigurationProperties.DEFAULT_REQUEST_TIMEOUT,
-                                                                   ConfigurationProperties.REQUEST_TIMEOUT + "."
-                                                                       + repository.getId(),
-                                                                   ConfigurationProperties.REQUEST_TIMEOUT ) );
-        HttpProtocolParams.setUserAgent( params, ConfigUtils.getString( session,
-                                                                        ConfigurationProperties.DEFAULT_USER_AGENT,
-                                                                        ConfigurationProperties.USER_AGENT ) );
+        httpClientBuilder.setUserAgent( ConfigUtils.getString( session, ConfigurationProperties.DEFAULT_USER_AGENT,
+                                                               ConfigurationProperties.USER_AGENT ) );
+
+        RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
+        requestConfigBuilder.setConnectTimeout( ConfigUtils.getInteger( session,
+                                                                        ConfigurationProperties.DEFAULT_CONNECT_TIMEOUT,
+                                                                        ConfigurationProperties.CONNECT_TIMEOUT + "."
+                                                                            + repository.getId(),
+                                                                        ConfigurationProperties.CONNECT_TIMEOUT ) );
+        requestConfigBuilder.setProxy( proxy );
+
+        requestConfigBuilder.setContentCompressionEnabled( true );
+
+        httpClientBuilder.setDefaultRequestConfig( requestConfigBuilder.build() );
+
+        SocketConfig.Builder socketConfigBuilder = SocketConfig.custom();
+        socketConfigBuilder.setSoTimeout( ConfigUtils.getInteger( session,
+                                                                  ConfigurationProperties.DEFAULT_REQUEST_TIMEOUT,
+                                                                  ConfigurationProperties.REQUEST_TIMEOUT + "."
+                                                                      + repository.getId(),
+                                                                  ConfigurationProperties.REQUEST_TIMEOUT ) );
+
+        httpClientBuilder.setDefaultSocketConfig( socketConfigBuilder.build() );
+
+        /*
+         * FIXME not found AuthParams.setCredentialCharset( params, ConfigUtils.getString( session,
+         * ConfigurationProperties.DEFAULT_HTTP_CREDENTIAL_ENCODING, ConfigurationProperties.HTTP_CREDENTIAL_ENCODING +
+         * "." + repository.getId(), ConfigurationProperties.HTTP_CREDENTIAL_ENCODING ) );
+         */
     }
 
     private static CredentialsProvider toCredentialsProvider( HttpHost server, AuthenticationContext serverAuthCtx,
-                                                              HttpHost proxy, AuthenticationContext proxyAuthCtx )
+                                                              HttpHost proxy, AuthenticationContext proxyAuthCtx,
+                                                              CredentialsProvider defaultCredentialsProvider )
     {
-        CredentialsProvider provider = toCredentialsProvider( server.getHostName(), AuthScope.ANY_PORT, serverAuthCtx );
+        CredentialsProvider provider = toCredentialsProvider( server.getHostName(), AuthScope.ANY_PORT, serverAuthCtx,
+                                                              defaultCredentialsProvider );
         if ( proxy != null )
         {
-            CredentialsProvider p = toCredentialsProvider( proxy.getHostName(), proxy.getPort(), proxyAuthCtx );
+            CredentialsProvider p =
+                toCredentialsProvider( proxy.getHostName(), proxy.getPort(), proxyAuthCtx, defaultCredentialsProvider );
             provider = new DemuxCredentialsProvider( provider, p, proxy );
         }
         return provider;
     }
 
-    private static CredentialsProvider toCredentialsProvider( String host, int port, AuthenticationContext ctx )
+    private static CredentialsProvider toCredentialsProvider( String host, int port, AuthenticationContext ctx,
+                                                              CredentialsProvider defaultCredentialsProvider )
     {
-        DeferredCredentialsProvider provider = new DeferredCredentialsProvider();
+        DeferredCredentialsProvider provider = new DeferredCredentialsProvider( defaultCredentialsProvider );
         if ( ctx != null )
         {
             AuthScope basicScope = new AuthScope( host, port );
