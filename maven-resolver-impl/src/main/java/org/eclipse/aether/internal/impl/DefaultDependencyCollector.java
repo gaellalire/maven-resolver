@@ -254,8 +254,10 @@ public class DefaultDependencyCollector
         result.setRoot( node );
 
         boolean traverse = root == null || depTraverser == null || depTraverser.traverseDependency( root );
+        List<Dependency> deps = new ArrayList<Dependency>( dependencies );
+        deps = dependencyModifier.modify( root, deps );
         String errorPath = null;
-        if ( traverse && !dependencies.isEmpty() )
+        if ( traverse && !deps.isEmpty() )
         {
             DataPool pool = new DataPool( session );
 
@@ -269,9 +271,6 @@ public class DefaultDependencyCollector
 
             Args args = new Args( session, trace, pool, nodes, context, versionContext, request );
             Results results = new Results( result, session );
-
-            List<Dependency> deps = new ArrayList<Dependency>( dependencies );
-            deps = dependencyModifier.modify( root, deps );
 
             process( args, results, deps, repositories,
                      depSelector != null ? depSelector.deriveChildSelector( context ) : null,
